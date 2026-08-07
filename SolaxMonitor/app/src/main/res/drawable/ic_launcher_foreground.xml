@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- slunce -->
+    <path
+        android:fillColor="#F5B429"
+        android:pathData="M54,34m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
+    <path
+        android:fillColor="#F5B429"
+        android:pathData="M52,14h4v8h-4z M52,46h4v8h-4z M32,32h8v4h-8z M68,32h8v4h-8z" />
+    <!-- baterie -->
+    <path
+        android:fillColor="#4ADE80"
+        android:pathData="M40,60h28a4,4 0,0 1,4 4v22a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-22a4,4 0,0 1,4 -4z" />
+    <path
+        android:fillColor="#0F1720"
+        android:pathData="M56,64l-12,16h8l-4,10 12,-16h-8z" />
+</vector>

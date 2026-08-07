@@ -1,0 +1,24 @@
+# --- tajemstvi, nikdy necommitovat ---
+keystore.properties
+local.properties
+*.jks
+*.keystore
+
+# --- vendor dokumentace, autorsky chranena ---
+*.pdf
+SolaxBattery.zip
+
+# --- buildy a binarky (APK se vesi na GitHub Release, ne do gitu) ---
+*.apk
+.gradle/
+build/
+app/build/
+verify/build/
+
+# --- lokalni varianty a pomocne soubory ---
+read_solax_local.py
+CLAUDE.md
+.idea/
+.DS_Store
+__pycache__/
+*.pyc
