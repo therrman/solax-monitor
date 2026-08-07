@@ -75,7 +75,12 @@ data class MeterState(
     val meter1Ok: Boolean,
     val meter2Ok: Boolean,
     val frequencyHz: Double,
-    val voltageTotalV: Double,
+    /** Činný výkon měří elektroměr, ale registry jsou mimo blok 0xC0-0xD0
+     *  (celkem 0x46/0x47, po fázích 0x82-0x87). Je to totéž co Feedin v kartě Síť. */
+    val activeTotalW: Int,
+    val activePhasesW: List<Int>,
+    /** 0xC9 je PRŮMĚR fází, na rozdíl od proudu a jalového výkonu, které jsou součty. */
+    val voltageAvgV: Double,
     val voltagePhasesV: List<Double>,
     val currentTotalA: Double,
     val currentPhasesA: List<Double>,

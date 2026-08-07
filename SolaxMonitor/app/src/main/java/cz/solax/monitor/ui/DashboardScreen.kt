@@ -234,27 +234,40 @@ private fun MeterCard(m: cz.solax.monitor.data.MeterState) {
             else Badge("METER 1 CHYBA", SolaxColors.Bad)
         },
     ) {
+        BigValue(
+            "%+d".format(m.activeTotalW),
+            "W",
+            if (m.activeTotalW >= 0) SolaxColors.Export else SolaxColors.Import,
+            caption = "činný výkon",
+        )
+        Spacer(Modifier.height(10.dp))
+        ValueRow("Jalový výkon", "%+d var".format(m.reactiveTotalVar))
+        ValueRow("Účiník", "%+.2f".format(m.powerFactorTotal))
         ValueRow("Frekvence", "%.2f Hz".format(m.frequencyHz))
-        ValueRow("Účiník celkem", "%+.2f".format(m.powerFactorTotal))
-        ValueRow("Jalový výkon celkem", "%+d var".format(m.reactiveTotalVar))
-        ValueRow("Napětí celkem", "%.1f V".format(m.voltageTotalV))
-        ValueRow("Proud celkem", "%+.1f A".format(m.currentTotalA))
+        // 0xC9 je průměr fází, kdežto proud a jalový výkon jsou součty
+        ValueRow("Napětí (průměr fází)", "%.1f V".format(m.voltageAvgV))
+        ValueRow("Proud (součet fází)", "%+.1f A".format(m.currentTotalA))
         // Meter2 hlásí com error, když druhý elektroměr není nainstalovaný
         ValueRow("Meter 2", if (m.meter2Ok) "OK" else "nepřipojen")
         Spacer(Modifier.height(8.dp))
-        PhaseHeader("Fáze", "Napětí", "Proud", "Účiník")
+        PhaseHeader("Fáze", "Činný", "Jalový", "Účiník")
         listOf("L1", "L2", "L3").forEachIndexed { i, label ->
             PhaseRow(
                 label,
-                "%.1f V".format(m.voltagePhasesV[i]),
-                "%+.1f A".format(m.currentPhasesA[i]),
+                "%+d W".format(m.activePhasesW[i]),
+                "%+d var".format(m.reactivePhasesVar[i]),
                 "%+.2f".format(m.powerFactorPhases[i]),
             )
         }
         Spacer(Modifier.height(8.dp))
-        PhaseHeader("Fáze", "", "", "Jalový výkon")
+        PhaseHeader("Fáze", "", "Napětí", "Proud")
         listOf("L1", "L2", "L3").forEachIndexed { i, label ->
-            PhaseRow(label, "", "", "%+d var".format(m.reactivePhasesVar[i]))
+            PhaseRow(
+                label,
+                "",
+                "%.1f V".format(m.voltagePhasesV[i]),
+                "%+.1f A".format(m.currentPhasesA[i]),
+            )
         }
     }
 }

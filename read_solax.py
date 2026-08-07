@@ -207,14 +207,19 @@ if ir_m:
     print(f"Komunikace: Meter1 {'OK' if M(0xB8) == 1 else 'CHYBA'}, "
           f"Meter2 {'OK' if M(0xB9) == 1 else 'nepřipojen'}")
     print(f"Frekvence:  {M(0xC8)/100:.2f} Hz")
-    print(f"Napětí:     celkem {M(0xC9)/10:.1f} V   "
-          f"L1 {M(0xCA)/10:.1f}  L2 {M(0xCB)/10:.1f}  L3 {M(0xCC)/10:.1f} V")
-    print(f"Proud:      celkem {s16(M(0xCD))/10:+.1f} A   "
-          f"L1 {s16(M(0xCE))/10:+.1f}  L2 {s16(M(0xCF))/10:+.1f}  L3 {s16(M(0xD0))/10:+.1f} A")
+    # Cinny vykon v bloku 0xC0-0xD0 neni, elektromer ho hlasi pres feedin registry
+    print(f"Činný výkon:  celkem {s32_le(ir[0x46], ir[0x47]):+d} W   "
+          f"L1 {s32_le(ir[0x82], ir[0x83]):+d}  L2 {s32_le(ir[0x84], ir[0x85]):+d}  "
+          f"L3 {s32_le(ir[0x86], ir[0x87]):+d} W")
     print(f"Jalový výkon: celkem {s16(M(0xC0)):+d} var   "
           f"L1 {s16(M(0xC1)):+d}  L2 {s16(M(0xC2)):+d}  L3 {s16(M(0xC3)):+d} var")
     print(f"Účiník:     celkem {s16(M(0xC4))/100:+.2f}   "
           f"L1 {s16(M(0xC5))/100:+.2f}  L2 {s16(M(0xC6))/100:+.2f}  L3 {s16(M(0xC7))/100:+.2f}")
+    # 0xC9 je PRUMER fazi, kdezto 0xCD a 0xC0 jsou SOUCTY - overeno merenim
+    print(f"Napětí:     průměr {M(0xC9)/10:.1f} V   "
+          f"L1 {M(0xCA)/10:.1f}  L2 {M(0xCB)/10:.1f}  L3 {M(0xCC)/10:.1f} V")
+    print(f"Proud:      součet {s16(M(0xCD))/10:+.1f} A   "
+          f"L1 {s16(M(0xCE))/10:+.1f}  L2 {s16(M(0xCF))/10:+.1f}  L3 {s16(M(0xD0))/10:+.1f} A")
 
 print("\n=== BATERIE ===")
 print(f"Napětí:     {ir[0x14]/10:.1f} V")

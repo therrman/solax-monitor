@@ -132,12 +132,8 @@ private fun printLikePython(d: SolaxData) {
         )
         println("Frekvence:  %.2f Hz".format(m.frequencyHz))
         println(
-            "Napětí:     celkem %.1f V   L1 %.1f  L2 %.1f  L3 %.1f V"
-                .format(m.voltageTotalV, m.voltagePhasesV[0], m.voltagePhasesV[1], m.voltagePhasesV[2]),
-        )
-        println(
-            "Proud:      celkem %+.1f A   L1 %+.1f  L2 %+.1f  L3 %+.1f A"
-                .format(m.currentTotalA, m.currentPhasesA[0], m.currentPhasesA[1], m.currentPhasesA[2]),
+            "Činný výkon:  celkem %+d W   L1 %+d  L2 %+d  L3 %+d W"
+                .format(m.activeTotalW, m.activePhasesW[0], m.activePhasesW[1], m.activePhasesW[2]),
         )
         println(
             "Jalový výkon: celkem %+d var   L1 %+d  L2 %+d  L3 %+d var"
@@ -146,6 +142,14 @@ private fun printLikePython(d: SolaxData) {
         println(
             "Účiník:     celkem %+.2f   L1 %+.2f  L2 %+.2f  L3 %+.2f"
                 .format(m.powerFactorTotal, m.powerFactorPhases[0], m.powerFactorPhases[1], m.powerFactorPhases[2]),
+        )
+        println(
+            "Napětí:     průměr %.1f V   L1 %.1f  L2 %.1f  L3 %.1f V"
+                .format(m.voltageAvgV, m.voltagePhasesV[0], m.voltagePhasesV[1], m.voltagePhasesV[2]),
+        )
+        println(
+            "Proud:      součet %+.1f A   L1 %+.1f  L2 %+.1f  L3 %+.1f A"
+                .format(m.currentTotalA, m.currentPhasesA[0], m.currentPhasesA[1], m.currentPhasesA[2]),
         )
     }
 
