@@ -10,6 +10,7 @@ plus referenční Python skripty. Čte přímo z měniče po lokální síti —
   <img src="docs/snimky/02-dashboard.png" width="200" alt="Dashboard">
   <img src="docs/snimky/03-baterie.png" width="200" alt="Baterie a BMS">
   <img src="docs/snimky/04-sit.png" width="200" alt="Síť po fázích">
+  <img src="docs/snimky/05-nabijecky.png" width="200" alt="Nabíječky X3-HAC">
   <img src="docs/snimky/01-pripojeni.png" width="200" alt="Připojení">
 </p>
 
