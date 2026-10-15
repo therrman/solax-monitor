@@ -12,6 +12,9 @@ import javax.net.SocketFactory
 /** Nalezený měnič: adresa, port a slave id, na které odpověděl. */
 data class FoundInverter(val ip: String, val port: Int, val slaveId: Int, val model: String?)
 
+/** Nalezená nabíječka X3-HAC: adresa a sériové číslo z holding 0x600. */
+data class FoundCharger(val ip: String, val serial: String)
+
 /**
  * Port scan podsítě /24 na portu 502 a ověření, že tam opravdu sedí Modbus.
  * Kotlinská obdoba scan_solax.py.
@@ -44,10 +47,39 @@ class NetworkScanner(
         subnet: String,
         port: Int = 502,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
-    ): List<FoundInverter> = coroutineScope {
+    ): List<FoundInverter> =
+        // Modbus ověříme až u těch mála, které mají port otevřený
+        openHosts(subnet, port, onProgress).mapNotNull { probe(it, port) }
+
+    /**
+     * Najde nabíječky X3-HAC: otevřený port 502 a čitelné sériové číslo v holding 0x600.
+     * Měnič tenhle blok nemá (Modbus exception), takže se s nabíječkou nesplete.
+     * Nabíječky ignorují unit id a chtějí ≥ 1 s mezi dotazy, na hostitele stačí jeden dotaz.
+     */
+    suspend fun scanChargers(
+        subnet: String,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): List<FoundCharger> = coroutineScope {
+        openHosts(subnet, 502, onProgress).map { ip ->
+            async(Dispatchers.IO) {
+                runCatching {
+                    ModbusTcpClient(ip, 502, 1, MODBUS_TIMEOUT_MS, socketFactory).use { client ->
+                        client.connect()
+                        client.readHoldingOrNull(0x600, 7)?.let { chars14(it, 0, 7) }
+                    }
+                }.getOrNull()?.let { FoundCharger(ip, it) }
+            }
+        }.awaitAll().filterNotNull()
+    }
+
+    private suspend fun openHosts(
+        subnet: String,
+        port: Int,
+        onProgress: (done: Int, total: Int) -> Unit,
+    ): List<String> = coroutineScope {
         val hosts = (1..254).map { "$subnet.$it" }
         var done = 0
-        val open = hosts.chunked(CONCURRENCY).flatMap { chunk ->
+        hosts.chunked(CONCURRENCY).flatMap { chunk ->
             chunk.map { ip ->
                 async(Dispatchers.IO) {
                     val reachable = isPortOpen(ip, port, PROBE_TIMEOUT_MS)
@@ -56,8 +88,6 @@ class NetworkScanner(
                 }
             }.awaitAll().filterNotNull()
         }
-        // Modbus ověříme až u těch mála, které mají port otevřený
-        open.mapNotNull { probe(it, port) }
     }
 
     private fun isPortOpen(ip: String, port: Int, timeoutMs: Int): Boolean = try {

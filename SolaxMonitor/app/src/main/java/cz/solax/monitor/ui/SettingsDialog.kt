@@ -15,6 +15,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,7 +34,10 @@ fun SettingsDialog(
     slaveId: Int,
     connectedEndpoint: String?,
     hacHosts: List<String>,
+    hacScanProgress: Int?,
+    hacScanMessage: String?,
     onHacHosts: (String) -> Unit,
+    onScanChargers: () -> Unit,
     onRefreshSeconds: (Int) -> Unit,
     onAutoRefresh: (Boolean) -> Unit,
     onDisconnect: () -> Unit,
@@ -41,6 +45,9 @@ fun SettingsDialog(
 ) {
     var custom by remember { mutableStateOf(refreshSeconds.toString()) }
     var hac by remember { mutableStateOf(hacHosts.joinToString(", ")) }
+
+    // Po skenu se adresy změní zvenku, pole musí následovat
+    LaunchedEffect(hacHosts) { hac = hacHosts.joinToString(", ") }
 
     // Adresy nabíječek se ukládají až při zavření, ať se nepřipojuje na rozepsané IP
     val finish = { onHacHosts(hac); onDismiss() }
@@ -99,6 +106,12 @@ fun SettingsDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                TextButton(onClick = onScanChargers, enabled = hacScanProgress == null) {
+                    Text(if (hacScanProgress != null) "Hledám nabíječky… $hacScanProgress %" else "Najít nabíječky")
+                }
+                hacScanMessage?.let {
+                    Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Spacer(Modifier.height(14.dp))
                 Text(
                     buildString {

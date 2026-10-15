@@ -59,6 +59,9 @@ data class UiState(
     val hacHosts: List<String> = Prefs.DEFAULT_HAC_HOSTS,
     val chargers: List<ChargerState> = Prefs.DEFAULT_HAC_HOSTS.map { ChargerState(it) },
     val chargersRefreshing: Boolean = false,
+    /** Průběh hledání nabíječek v %, null = neběží. */
+    val hacScanProgress: Int? = null,
+    val hacScanMessage: String? = null,
 )
 
 class SolaxViewModel(app: Application) : AndroidViewModel(app) {
@@ -288,6 +291,36 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 },
             )
+        }
+    }
+
+    /** Oskenuje podsíť a nalezené nabíječky uloží jako seznam adres. Nic nenajde = seznam zůstane. */
+    fun scanChargers() {
+        if (_state.value.hacScanProgress != null) return
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val subnet = WifiNetwork.subnet(context)
+            if (subnet == null) {
+                _state.update { it.copy(hacScanMessage = "Telefon není připojený k Wi-Fi.") }
+                return@launch
+            }
+            _state.update { it.copy(hacScanProgress = 0, hacScanMessage = null) }
+            val found = runCatching {
+                NetworkScanner(WifiNetwork.socketFactory(context)).scanChargers(subnet) { done, total ->
+                    _state.update { it.copy(hacScanProgress = done * 100 / total) }
+                }
+            }.getOrElse { emptyList() }
+            _state.update {
+                it.copy(
+                    hacScanProgress = null,
+                    hacScanMessage = if (found.isEmpty()) {
+                        "V síti $subnet.0/24 nebyla nalezena žádná nabíječka."
+                    } else {
+                        "Nalezeno: " + found.joinToString(", ") { f -> "${f.ip} (${f.serial})" }
+                    },
+                )
+            }
+            if (found.isNotEmpty()) setHacHosts(found.joinToString(",") { it.ip })
         }
     }
 
