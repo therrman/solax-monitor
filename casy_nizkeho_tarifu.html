@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Časy nízkého tarifu elektřiny (HDO)</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #f8fafc;
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 10mm 12mm;
+      min-height: 297mm;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .page {
+        padding: 0;
+        box-shadow: none;
+        min-height: auto;
+      }
+      .no-print {
+        display: none !important;
+      }
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Print control button */
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #0284c7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+      transition: background 0.15s;
+    }
+    .btn:hover {
+      background: #0369a1;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .title-group h1 {
+      font-size: 21px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .title-group .icon {
+      color: #eab308;
+      font-size: 24px;
+    }
+
+    .title-group p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-nt {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .badge-vt {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    /* Key takeaways / Summary bar */
+    .summary-bar {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-green { background: #22c55e; }
+    .dot-red { background: #ef4444; }
+
+    /* Grid of seasons */
+    .seasons-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .season-card {
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .season-card.current {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    }
+
+    .card-header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 7px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h2 {
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .card-header .season-tag {
+      font-size: 11px;
+      background: rgba(255,255,255,0.18);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .card-content {
+      padding: 9px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .col-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 3px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .time-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3.5px;
+    }
+
+    .time-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #14532d;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .vt-summary {
+      grid-column: span 2;
+      background: #fff5f5;
+      border: 1px dashed #fca5a5;
+      border-radius: 5px;
+      padding: 5px 8px;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #991b1b;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .vt-summary strong {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .vt-summary span {
+      color: #7f1d1d;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    /* Comparison master table */
+    .master-table-section {
+      margin-top: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 8px 10px;
+    }
+
+    .master-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .master-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .master-table th, .master-table td {
+      border: 1px solid #e2e8f0;
+      padding: 4px 6px;
+      text-align: left;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .master-table th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .master-table tr:nth-child(even) td {
+      background: #fcfdfe;
+    }
+
+    .master-table td.vt-highlight {
+      background: #fef2f2;
+      color: #991b1b;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #64748b;
+    }
+
+    .tip-box {
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #1e40af;
+      border-radius: 0 4px 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="toolbar no-print">
+      <button class="btn" onclick="window.print()">
+        🖨️ Tisknout tabulku (Ctrl/Cmd + P)
+      </button>
+    </div>
+
+    <header>
+      <div class="title-group">
+        <h1><span class="icon">⚡</span> Rozpis nízkého tarifu elektřiny (NT / HDO)</h1>
+        <p>Platné spínací časy pro sazbu s 20 hodinami nízkého tarifu denně (D57d / TČ / elektrokotel)</p>
+      </div>
+      <div class="header-badges">
+        <span class="badge-pill badge-nt">20 h NT denně</span>
+        <span class="badge-pill badge-vt">4 h VT denně</span>
+      </div>
+    </header>
+
+    <div class="summary-bar">
+      <div class="summary-item">
+        <span class="dot dot-green"></span>
+        <strong>Nízký tarif (NT / levný proud):</strong> Pračka, myčka, sušička, bojler, nabíjení EV.
+      </div>
+      <div class="summary-item">
+        <span class="dot dot-red"></span>
+        <strong>Vysoký tarif (VT / drahý proud):</strong> Pouze 4× 1 hodina denně.
+      </div>
+    </div>
+
+    <!-- 4 Období -->
+    <div class="seasons-grid">
+      <!-- Období 1 -->
+      <div class="season-card">
+        <div class="card-header">
+          <h2>1. 9. – 31. 10.</h2>
+          <span class="season-tag">Podzim</span>
+        </div>
+        <div class="card-content">
+          <div>
+            <div class="col-title">📅 Pracovní dny</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 06:15</span></li>
+              <li class="time-item"><span>07:15 – 08:45</span></li>
+              <li class="time-item"><span>09:45 – 17:45</span></li>
+              <li class="time-item"><span>18:45 – 20:15</span></li>
+              <li class="time-item"><span>21:15 – 23:59</span></li>
+            </ul>
+          </div>
+          <div>
+            <div class="col-title">🏖️ Víkendy</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 07:15</span></li>
+              <li class="time-item"><span>08:15 – 09:45</span></li>
+              <li class="time-item"><span>10:45 – 18:15</span></li>
+              <li class="time-item"><span>19:15 – 20:45</span></li>
+              <li class="time-item"><span>21:45 – 23:59</span></li>
+            </ul>
+          </div>
+          <div class="vt-summary">
+            <strong>⛔ Pozor na VT:</strong>
+            <span>Po–Pá: 06:15–07:15, 08:45–09:45, 17:45–18:45, 20:15–21:15 | Víkend: 07:15–08:15, 09:45–10:45, 18:15–19:15, 20:45–21:45</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Období 2 -->
+      <div class="season-card">
+        <div class="card-header">
+          <h2>1. 11. – 31. 1.</h2>
+          <span class="season-tag">Zima</span>
+        </div>
+        <div class="card-content">
+          <div>
+            <div class="col-title">📅 Pracovní dny</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 06:45</span></li>
+              <li class="time-item"><span>07:45 – 09:15</span></li>
+              <li class="time-item"><span>10:15 – 17:00</span></li>
+              <li class="time-item"><span>18:00 – 19:30</span></li>
+              <li class="time-item"><span>20:30 – 23:59</span></li>
+            </ul>
+          </div>
+          <div>
+            <div class="col-title">🏖️ Víkendy</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 07:15</span></li>
+              <li class="time-item"><span>08:15 – 09:45</span></li>
+              <li class="time-item"><span>10:45 – 16:30</span></li>
+              <li class="time-item"><span>17:30 – 19:00</span></li>
+              <li class="time-item"><span>20:00 – 23:59</span></li>
+            </ul>
+          </div>
+          <div class="vt-summary">
+            <strong>⛔ Pozor na VT:</strong>
+            <span>Po–Pá: 06:45–07:45, 09:15–10:15, 17:00–18:00, 19:30–20:30 | Víkend: 07:15–08:15, 09:45–10:45, 16:30–17:30, 19:00–20:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Období 3 -->
+      <div class="season-card">
+        <div class="card-header">
+          <h2>1. 2. – 31. 3.</h2>
+          <span class="season-tag">Předjaří</span>
+        </div>
+        <div class="card-content">
+          <div>
+            <div class="col-title">📅 Pracovní dny</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 06:45</span></li>
+              <li class="time-item"><span>07:45 – 09:15</span></li>
+              <li class="time-item"><span>10:15 – 17:15</span></li>
+              <li class="time-item"><span>18:15 – 19:45</span></li>
+              <li class="time-item"><span>20:45 – 23:59</span></li>
+            </ul>
+          </div>
+          <div>
+            <div class="col-title">🏖️ Víkendy</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 07:15</span></li>
+              <li class="time-item"><span>08:15 – 09:45</span></li>
+              <li class="time-item"><span>10:45 – 18:15</span></li>
+              <li class="time-item"><span>19:15 – 20:45</span></li>
+              <li class="time-item"><span>21:45 – 23:59</span></li>
+            </ul>
+          </div>
+          <div class="vt-summary">
+            <strong>⛔ Pozor na VT:</strong>
+            <span>Po–Pá: 06:45–07:45, 09:15–10:15, 17:15–18:15, 19:45–20:45 | Víkend: 07:15–08:15, 09:45–10:45, 18:15–19:15, 20:45–21:45</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Období 4 -->
+      <div class="season-card">
+        <div class="card-header">
+          <h2>1. 4. – 31. 8.</h2>
+          <span class="season-tag">Jaro a léto <span style="font-weight: 400; opacity: 0.9;">(shodné s podzimem)</span></span>
+        </div>
+        <div class="card-content">
+          <div>
+            <div class="col-title">📅 Pracovní dny</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 06:15</span></li>
+              <li class="time-item"><span>07:15 – 08:45</span></li>
+              <li class="time-item"><span>09:45 – 17:45</span></li>
+              <li class="time-item"><span>18:45 – 20:15</span></li>
+              <li class="time-item"><span>21:15 – 23:59</span></li>
+            </ul>
+          </div>
+          <div>
+            <div class="col-title">🏖️ Víkendy</div>
+            <ul class="time-list">
+              <li class="time-item"><span>00:00 – 07:15</span></li>
+              <li class="time-item"><span>08:15 – 09:45</span></li>
+              <li class="time-item"><span>10:45 – 18:15</span></li>
+              <li class="time-item"><span>19:15 – 20:45</span></li>
+              <li class="time-item"><span>21:45 – 23:59</span></li>
+            </ul>
+          </div>
+          <div class="vt-summary">
+            <strong>⛔ Pozor na VT:</strong>
+            <span>Po–Pá: 06:15–07:15, 08:45–09:45, 17:45–18:45, 20:15–21:15 | Víkend: 07:15–08:15, 09:45–10:45, 18:15–19:15, 20:45–21:45</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rychlý tahák na vysoký tarif (kdy nepouštět) -->
+    <div class="master-table-section">
+      <div class="master-title">
+        <span>⚡ Přehledný tahák: Kdy platí drahý vysoký tarif (VT)? (Pouze 4 hodiny denně)</span>
+        <span style="font-weight: 500; font-size: 10.5px; color: #64748b;">Mimo tyto časy je vždy levný NT</span>
+      </div>
+      <table class="master-table">
+        <thead>
+          <tr>
+            <th>Období</th>
+            <th>Pracovní dny (Po – Pá) – 4 špičky VT</th>
+            <th>Víkendy (So – Ne) – 4 špičky VT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. 4. – 31. 10.</strong> (Jaro / Léto / Podzim)</td>
+            <td class="vt-highlight">06:15–07:15 &nbsp;|&nbsp; 08:45–09:45 &nbsp;|&nbsp; 17:45–18:45 &nbsp;|&nbsp; 20:15–21:15</td>
+            <td class="vt-highlight">07:15–08:15 &nbsp;|&nbsp; 09:45–10:45 &nbsp;|&nbsp; 18:15–19:15 &nbsp;|&nbsp; 20:45–21:45</td>
+          </tr>
+          <tr>
+            <td><strong>1. 11. – 31. 1.</strong> (Zima)</td>
+            <td class="vt-highlight">06:45–07:45 &nbsp;|&nbsp; 09:15–10:15 &nbsp;|&nbsp; 17:00–18:00 &nbsp;|&nbsp; 19:30–20:30</td>
+            <td class="vt-highlight">07:15–08:15 &nbsp;|&nbsp; 09:45–10:45 &nbsp;|&nbsp; 16:30–17:30 &nbsp;|&nbsp; 19:00–20:00</td>
+          </tr>
+          <tr>
+            <td><strong>1. 2. – 31. 3.</strong> (Předjaří)</td>
+            <td class="vt-highlight">06:45–07:45 &nbsp;|&nbsp; 09:15–10:15 &nbsp;|&nbsp; 17:15–18:15 &nbsp;|&nbsp; 19:45–20:45</td>
+            <td class="vt-highlight">07:15–08:15 &nbsp;|&nbsp; 09:45–10:45 &nbsp;|&nbsp; 18:15–19:15 &nbsp;|&nbsp; 20:45–21:45</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      <div class="tip-box">
+        💡 <strong>Tip pro úsporu:</strong> Nejvýhodnější je plánovat spotřebiče na dlouhé odpolední okno (cca 10:00–17:00) nebo noc (po 21:00/22:00).
+      </div>
+      <div>Vytvořeno pro tisk na A4 | Zdroj: HDO rozpis</div>
+    </footer>
+  </div>
+
+</body>
+</html>
