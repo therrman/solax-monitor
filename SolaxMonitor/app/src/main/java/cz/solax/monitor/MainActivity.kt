@@ -22,6 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab as TabItem
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cz.solax.monitor.ui.ChargersScreen
 import cz.solax.monitor.ui.ConnectScreen
 import cz.solax.monitor.ui.DashboardScreen
 import cz.solax.monitor.ui.SettingsDialog
@@ -82,6 +85,8 @@ private fun App(vm: SolaxViewModel) {
             autoRefresh = state.autoRefresh,
             slaveId = state.slaveId,
             connectedEndpoint = state.connected?.display,
+            hacHosts = state.hacHosts,
+            onHacHosts = vm::setHacHosts,
             onRefreshSeconds = vm::setRefreshSeconds,
             onAutoRefresh = vm::setAutoRefresh,
             onDisconnect = vm::disconnect,
@@ -125,7 +130,7 @@ private fun App(vm: SolaxViewModel) {
                         }
                     },
                     actions = {
-                        if (state.refreshing) {
+                        if (if (state.tab == Tab.CHARGERS) state.chargersRefreshing else state.refreshing) {
                             CircularProgressIndicator(
                                 Modifier.size(20.dp).padding(end = 4.dp),
                                 strokeWidth = 2.dp,
@@ -143,7 +148,22 @@ private fun App(vm: SolaxViewModel) {
             },
         ) { padding ->
             Column(Modifier.padding(padding)) {
-                if (state.error != null) {
+                TabRow(
+                    selectedTabIndex = state.tab.ordinal,
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
+                    TabItem(
+                        selected = state.tab == Tab.INVERTER,
+                        onClick = { vm.selectTab(Tab.INVERTER) },
+                        text = { Text("Měnič") },
+                    )
+                    TabItem(
+                        selected = state.tab == Tab.CHARGERS,
+                        onClick = { vm.selectTab(Tab.CHARGERS) },
+                        text = { Text("Nabíječky") },
+                    )
+                }
+                if (state.error != null && state.tab == Tab.INVERTER) {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -153,7 +173,10 @@ private fun App(vm: SolaxViewModel) {
                         Text(state.error!!, fontSize = 13.sp, color = SolaxColors.Bad)
                     }
                 }
-                state.data?.let { DashboardScreen(it) }
+                when (state.tab) {
+                    Tab.INVERTER -> state.data?.let { DashboardScreen(it) }
+                    Tab.CHARGERS -> ChargersScreen(state.chargers, state.chargersRefreshing)
+                }
                 Spacer(Modifier.size(0.dp))
             }
         }

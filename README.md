@@ -27,6 +27,9 @@ a ukládá se do flash paměti měniče — do téhle aplikace záměrně nepat�
   pak naposledy použité adresy, a když nic neodpoví, oskenuje podsíť `/24` na portu 502.
 - **Dashboard** — chyby a alarmy, tok energie, PV1/PV2 zvlášť, baterie, BMS detail,
   síť po jednotlivých fázích, elektroměr, denní i celkové energie, nastavení, časová okna.
+- **Nabíječky X3-HAC-22P** — záložka *Nabíječky*: stav, výkon po fázích, relace, nastavení a paralelní
+  provoz primary/secondary. Čte přímo z nabíječek (port 502, výchozí `192.168.0.137` a `.142`, adresy
+  se mění v Nastavení). Protokol chce ≥ 1 s mezi dotazy, takže jedno čtení trvá ~3 s. Jen čtení.
 - **Dekódování chyb** podle protokolu — tabulky 2-3 (měnič X3), 2-5 (manager) a 2-6 (BMS).
 - **Zdraví článků** — rozdíl napětí článků s barevným prahem: zdravé < 50 mV, varování > 150 mV.
 - **Obnova** 2/5/10/30 s nebo vlastní 1–30 s.
@@ -82,7 +85,7 @@ ve stejném formátu jako Python. Umí i `--args="--live <host> <port>"` pro čt
 
 ## Poznámky k protokolu
 
-Vycházel jsem z dokumentu *Hybrid-X1X3-G4-ModbusTCPRTU-V3.21*. Pár míst, kde se
+Vycházel jsem z dokumentu *Hybrid-X1X3-G4-ModbusTCPRTU*, tabulky chyb a režimů odpovídají V3.36 (use mode 4 Peak Shaving, 5 TOU; bity poruchy 21/22 Parallel a Hard Limit Fault). Pár míst, kde se
 skutečné chování X3-Hybrid G4 (firmware ARM 1.57 / DSP 1.59) liší od dokumentace:
 
 | Registr | Dokumentace | Skutečnost |

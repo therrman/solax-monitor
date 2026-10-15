@@ -21,6 +21,9 @@ sourceSets {
                 "cz/solax/monitor/data/Tables.kt",
                 "cz/solax/monitor/data/SolaxData.kt",
                 "cz/solax/monitor/data/SolaxReader.kt",
+                "cz/solax/monitor/data/HacData.kt",
+                "cz/solax/monitor/data/HacTables.kt",
+                "cz/solax/monitor/data/HacReader.kt",
             )
         }
     }

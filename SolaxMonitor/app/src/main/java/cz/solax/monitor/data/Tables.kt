@@ -1,7 +1,7 @@
 package cz.solax.monitor.data
 
 /**
- * Dekódovací tabulky z protokolu Hybrid-X1X3-G4-ModbusTCPRTU-V3.21.
+ * Dekódovací tabulky z protokolu Hybrid X1/X3-G4 Modbus V3.36 (původně V3.21).
  * Přeneseno 1:1 z read_solax.py, ověřeno proti živému X3-Hybrid G4.
  */
 
@@ -11,7 +11,10 @@ val RUN_MODES = mapOf(
     9 to "Idle", 10 to "Standby",
 )
 
-val USE_MODE = mapOf(0 to "Self use", 1 to "Feedin Priority", 2 to "Back up", 3 to "Manual")
+val USE_MODE = mapOf(
+    0 to "Self use", 1 to "Feedin Priority", 2 to "Back up", 3 to "Manual",
+    4 to "Peak Shaving", 5 to "TOU Mode",
+)
 
 val MANUAL_MODE = mapOf(0 to "Stop", 1 to "Force charge", 2 to "Force discharge")
 
@@ -23,6 +26,8 @@ val LOCK_STATE = mapOf(0 to "locked", 1 to "unlocked")
 val POWER_CONTROL = mapOf(
     0 to "vypnuto", 1 to "power control",
     2 to "electric quantity control", 3 to "SOC target control",
+    4 to "push power (+/-)", 5 to "push power (zero)",
+    6 to "self consume charge/discharge", 7 to "self consume charge only",
 )
 
 /** Table 2-3 Inverter error code (X3) - InvFaultMessage, input 0x40 LSB / 0x41 MSB. */
@@ -32,7 +37,7 @@ val INV_FAULT_BITS = listOf(
     "DCI OCP Fault", "DCV OCP Fault", "SW OCP Fault", "RC OCP Fault",
     "Isolation Fault", "Temp Over Fault", "BatConnDir Fault", "Off-grid Overload",
     "Overload", "Bat Power Low", "BMS Lost", "Fan Fault",
-    "Low Temp Fault", "Reserve21", "Reserve22", "INV Volt Sample Fault",
+    "Low Temp Fault", "Parallel Fault", "Hard Limit Fault", "INV Volt Sample Fault",
     "Inner Comm Fault", "INV EEPROM Fault", "RCD Fault", "Grid Relay Fault",
     "Off-grid Relay Fault", "PV ConnDir Fault", "Charger Relay Fault", "Earth Relay Fault",
 )

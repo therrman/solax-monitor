@@ -1,4 +1,5 @@
 import cz.solax.monitor.data.BDC_STATE
+import cz.solax.monitor.data.HacReader
 import cz.solax.monitor.data.MANUAL_MODE
 import cz.solax.monitor.data.POWER_CONTROL
 import cz.solax.monitor.data.SolaxData
@@ -17,10 +18,16 @@ import java.util.Locale
  * Použití:
  *   verify <snapshot.json>          přehraje nahraný snímek
  *   verify --live <host> <port>     čte přímo z měniče
+ *   verify --hac <host>             čte přímo z nabíječky X3-HAC (port 502)
  */
 fun main(args: Array<String>) {
     // Python tiskne desetinnou tečku, Kotlin by v české locale dal čárku
     Locale.setDefault(Locale.ROOT)
+
+    if (args.firstOrNull() == "--hac") {
+        printHac(args.getOrElse(1) { "192.168.0.137" })
+        return
+    }
 
     val source: RegisterSource = if (args.firstOrNull() == "--live") {
         val host = args.getOrElse(1) { "127.0.0.1" }
@@ -255,4 +262,40 @@ private fun printLikePython(d: SolaxData) {
         println("=== NEPODPOROVANÉ BLOKY ===")
         d.unsupported.forEach { println("  $it") }
     }
+}
+
+/** Klíčové hodnoty nabíječky, ve stejném pořadí a formátu jako řádky read_hac.py. */
+private fun printHac(host: String) {
+    val d = ModbusTcpClient(host, 502, 1, 5000).use { c ->
+        c.connect()
+        HacReader(c).read()
+    }
+    val v = d.device
+    val s = d.status
+    val ch = d.charging
+    val st = d.settings
+    val p = d.parallel
+    println("SN:         ${v.serial}   (WiFi modul ${v.wifiModule})")
+    println("Model:      ${v.powerRatingText}, ${if (v.threePhase) "třífázová" else "jednofázová"}, scéna ${v.sceneText}")
+    println("Firmware:   %.2f   modul %.2f, Modbus protokol %.2f".format(v.firmware, v.moduleFirmware, v.protocolVersion))
+    println("Modbus adr: ${v.modbusAddress}")
+    println("Teplota:    ${v.tempC} °C")
+    println("RunMode:    ${s.runMode} (${s.runModeText})")
+    println("Porucha:    ${if (s.faults.isEmpty()) "OK" else s.faults.joinToString(", ")}")
+    println("CP napětí:  %.2f V".format(s.cpVoltageV))
+    println("PWM:        %.1f %%".format(s.pwmPercent))
+    println("Fáze:       ${s.phaseText}")
+    ch.phases.forEach { println("${it.label}: %6.2f V  %5.2f A  %5d W  %.2f Hz".format(it.voltageV, it.currentA, it.powerW, it.frequencyHz)) }
+    println("Výkon celkem:     ${ch.totalW} W")
+    println("Tato relace:      %.1f kWh, ${ch.sessionMinutes} min".format(ch.sessionKwh))
+    println("Nabito celkem:    %.1f kWh".format(ch.totalKwh))
+    println("Výkon:      L1 %+d W   L2 %+d W   L3 %+d W   celkem %+d W".format(d.grid.phasesW[0], d.grid.phasesW[1], d.grid.phasesW[2], d.grid.totalW))
+    println("Režim:            ${st.chargeModeText}")
+    println("Nabíjecí proud:   %.2f A   (min %.2f A, max %.2f A)".format(st.currentA, st.minCurrentA, st.maxCurrentA))
+    println("Hlavní jistič:    ${st.mainBreakerA} A")
+    println("Alarm napětí:     ${st.alarmOverV} / ${st.alarmUnderV} V")
+    println("Zdroj dat sítě:   ${st.dataSourceText}")
+    println("Role:             ${p.roleText}   (0x642 = 0x%04X)".format(p.raw))
+    println("Počet secondary:  ${p.secondaryCount}")
+    println("Chyby paralelu:   0x%08X".format(p.errors))
 }

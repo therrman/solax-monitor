@@ -32,16 +32,22 @@ fun SettingsDialog(
     autoRefresh: Boolean,
     slaveId: Int,
     connectedEndpoint: String?,
+    hacHosts: List<String>,
+    onHacHosts: (String) -> Unit,
     onRefreshSeconds: (Int) -> Unit,
     onAutoRefresh: (Boolean) -> Unit,
     onDisconnect: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var custom by remember { mutableStateOf(refreshSeconds.toString()) }
+    var hac by remember { mutableStateOf(hacHosts.joinToString(", ")) }
+
+    // Adresy nabíječek se ukládají až při zavření, ať se nepřipojuje na rozepsané IP
+    val finish = { onHacHosts(hac); onDismiss() }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Hotovo") } },
+        onDismissRequest = finish,
+        confirmButton = { TextButton(onClick = finish) { Text("Hotovo") } },
         dismissButton = {
             TextButton(onClick = { onDisconnect(); onDismiss() }) { Text("Odpojit") }
         },
@@ -83,6 +89,14 @@ fun SettingsDialog(
                     label = { Text("Vlastní (${Prefs.MIN_REFRESH}–${Prefs.MAX_REFRESH} s)") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = hac,
+                    onValueChange = { hac = it },
+                    label = { Text("Nabíječky X3-HAC (IP, oddělené čárkou)") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))

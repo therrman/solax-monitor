@@ -70,7 +70,7 @@ INV_FAULT_BITS = [
     "DCI OCP Fault", "DCV OCP Fault", "SW OCP Fault", "RC OCP Fault",
     "Isolation Fault", "Temp Over Fault", "BatConnDir Fault", "Off-grid Overload",
     "Overload", "Bat Power Low", "BMS Lost", "Fan Fault",
-    "Low Temp Fault", "Reserve21", "Reserve22", "INV Volt Sample Fault",
+    "Low Temp Fault", "Parallel Fault", "Hard Limit Fault", "INV Volt Sample Fault",
     "Inner Comm Fault", "INV EEPROM Fault", "RCD Fault", "Grid Relay Fault",
     "Off-grid Relay Fault", "PV ConnDir Fault", "Charger Relay Fault", "Earth Relay Fault",
 ]
@@ -109,11 +109,14 @@ SAFETY_CODE = {
     37: "EN50549_Romania", 38: "CEI016", 39: "ACEA",
 }
 
-USE_MODE = {0: "Self use", 1: "Feedin Priority", 2: "Back up", 3: "Manual"}
+USE_MODE = {0: "Self use", 1: "Feedin Priority", 2: "Back up", 3: "Manual",
+            4: "Peak Shaving", 5: "TOU Mode"}
 MANUAL = {0: "Stop", 1: "Force charge", 2: "Force discharge"}
 POWER_CONTROL = {
     0: "disable remote control", 1: "enable power control",
     2: "enable electric quantity control", 3: "enable SOC target control",
+    4: "push power (+/-)", 5: "push power (zero)",
+    6: "self consume charge/discharge", 7: "self consume charge only",
 }
 
 

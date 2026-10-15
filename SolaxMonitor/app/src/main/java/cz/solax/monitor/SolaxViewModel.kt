@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import cz.solax.monitor.data.Endpoint
+import cz.solax.monitor.data.HacData
+import cz.solax.monitor.data.HacReader
 import cz.solax.monitor.data.Prefs
 import cz.solax.monitor.data.SolaxData
 import cz.solax.monitor.data.SolaxReader
@@ -18,11 +20,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
 enum class Screen { CONNECT, DASHBOARD }
+
+/** Záložky na dashboardu: měnič a nabíječky X3-HAC. */
+enum class Tab { INVERTER, CHARGERS }
+
+/** Poslední známý stav jedné nabíječky. [data] zůstává i po chybě čtení, ať obrazovka neblikne prázdná. */
+data class ChargerState(
+    val host: String,
+    val data: HacData? = null,
+    val error: String? = null,
+)
 
 data class UiState(
     val screen: Screen = Screen.CONNECT,
@@ -41,6 +55,10 @@ data class UiState(
     val lastUpdateMs: Long = 0L,
     val refreshing: Boolean = false,
     val showSettings: Boolean = false,
+    val tab: Tab = Tab.INVERTER,
+    val hacHosts: List<String> = Prefs.DEFAULT_HAC_HOSTS,
+    val chargers: List<ChargerState> = Prefs.DEFAULT_HAC_HOSTS.map { ChargerState(it) },
+    val chargersRefreshing: Boolean = false,
 )
 
 class SolaxViewModel(app: Application) : AndroidViewModel(app) {
@@ -53,6 +71,7 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
     private var reader: SolaxReader? = null
     private var refreshJob: Job? = null
     private var connectJob: Job? = null
+    private var chargerJob: Job? = null
     private var paused = false
 
     init {
@@ -62,6 +81,8 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
                     history = prefs.history(),
                     slaveId = prefs.slaveId(),
                     refreshSeconds = prefs.refreshSeconds(),
+                    hacHosts = prefs.hacHosts(),
+                    chargers = prefs.hacHosts().map { host -> ChargerState(host) },
                 )
             }
             autoConnect()
@@ -203,7 +224,81 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refreshNow() {
-        viewModelScope.launch { refreshOnce() }
+        if (_state.value.tab == Tab.CHARGERS) {
+            viewModelScope.launch { refreshChargers() }
+        } else {
+            viewModelScope.launch { refreshOnce() }
+        }
+    }
+
+    // ------------------------------------------------------------ nabíječky
+
+    fun selectTab(tab: Tab) {
+        if (_state.value.tab == tab) return
+        _state.update { it.copy(tab = tab) }
+        if (tab == Tab.CHARGERS) startChargerLoop() else chargerJob?.cancel()
+    }
+
+    /**
+     * Nabíječky se čtou jen na své záložce. Jedno čtení trvá ~3 s (protokol chce 1 s mezi dotazy),
+     * takže interval je aspoň [MIN_CHARGER_REFRESH_S] a další čtení začne až po dokončení předchozího.
+     */
+    private fun startChargerLoop() {
+        chargerJob?.cancel()
+        chargerJob = viewModelScope.launch {
+            var first = true
+            while (true) {
+                // První čtení hned po otevření záložky, další jen při zapnuté automatické obnově
+                if (!paused && (first || _state.value.autoRefresh)) refreshChargers()
+                first = false
+                delay(maxOf(_state.value.refreshSeconds, MIN_CHARGER_REFRESH_S) * 1000L)
+                if (_state.value.screen != Screen.DASHBOARD || _state.value.tab != Tab.CHARGERS) break
+            }
+        }
+    }
+
+    /** Obě nabíječky se čtou současně, každá po vlastním spojení. Jen čtení. */
+    private suspend fun refreshChargers() {
+        if (_state.value.chargersRefreshing) return
+        val hosts = _state.value.hacHosts
+        val factory = WifiNetwork.socketFactory(getApplication())
+        _state.update { it.copy(chargersRefreshing = true) }
+        val results = withContext(Dispatchers.IO) {
+            hosts.map { host ->
+                async {
+                    runCatching {
+                        ModbusTcpClient(host, 502, 1, TIMEOUT_MS, factory).use { c ->
+                            c.connect()
+                            HacReader(c).read()
+                        }
+                    }
+                }
+            }.awaitAll()
+        }
+        _state.update { st ->
+            st.copy(
+                chargersRefreshing = false,
+                chargers = hosts.mapIndexed { i, host ->
+                    val old = st.chargers.firstOrNull { it.host == host }
+                    results[i].fold(
+                        onSuccess = { ChargerState(host, it, null) },
+                        onFailure = { e ->
+                            ChargerState(host, old?.data, "${e.message ?: e.javaClass.simpleName}")
+                        },
+                    )
+                },
+            )
+        }
+    }
+
+    fun setHacHosts(text: String) {
+        val hosts = text.split(',', ';', '\n', ' ').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (hosts.isEmpty()) return
+        _state.update { st ->
+            st.copy(hacHosts = hosts, chargers = hosts.map { h -> st.chargers.firstOrNull { it.host == h } ?: ChargerState(h) })
+        }
+        viewModelScope.launch { prefs.setHacHosts(hosts) }
+        if (_state.value.tab == Tab.CHARGERS) startChargerLoop()
     }
 
     private suspend fun refreshOnce() {
@@ -242,6 +337,7 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
 
     fun disconnect() {
         refreshJob?.cancel()
+        chargerJob?.cancel()
         connectJob?.cancel()
         client?.close()
         client = null
@@ -250,6 +346,7 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
             _state.update {
                 it.copy(
                     screen = Screen.CONNECT,
+                    tab = Tab.INVERTER,
                     data = null,
                     connected = null,
                     error = null,
@@ -303,5 +400,6 @@ class SolaxViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         private const val TIMEOUT_MS = 5000
+        private const val MIN_CHARGER_REFRESH_S = 5
     }
 }
